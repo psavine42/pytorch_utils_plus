@@ -1,4 +1,6 @@
 import torch
+from torch.nn import Parameter
+from torch.autograd import Variable
 
 def get_in(x, k, df=None):
     """
@@ -55,10 +57,13 @@ def _show(xs, ofs=0):
     elif type(xs) == str:
         st += ' ' * ofs + xs
     elif torch.is_tensor(xs) is True:
-        st += ' ' * ofs + 'tensor of size:   ' + str(list(xs.size())) \
+        st += ' ' * ofs + 'Tensor of size:   ' + str(list(xs.size())) \
               + ' ' + str(xs.storage_type())
-    elif type(xs) == Variable:
-        st += ' ' * ofs + 'variable of size: ' + str(list(xs.size())) \
+    elif isinstance(xs, Parameter) is True:
+        st += ' ' * ofs + 'Parameter of size:   ' + str(list(xs.size())) \
+              + ' ' + str(xs.storage_type())
+    elif isinstance(xs, Variable):
+        st += ' ' * ofs + 'Variable of size: ' + str(list(xs.size())) \
               + ' ' + str(xs.data.storage_type())
     ofs += 3
     return st

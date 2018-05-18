@@ -26,7 +26,7 @@ setup_info = dict(
     zip_safe=True,
 
     install_requires=[
-        'torch',
+        # 'torch',
         'six',
     ]
 )
