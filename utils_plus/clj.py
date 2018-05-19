@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Parameter
+import torch.nn as nn
 from torch.autograd import Variable
 
 def get_in(x, k, df=None):
@@ -44,9 +44,34 @@ def get_in(x, k, df=None):
         return df
 
 
+def identity(*x):
+    return x
+
+
+def _sumfn(x):
+    pass
+
+
+def summarize(model, fn=identity, o=0):
+    res = []
+    for key, module in model._modules.items():
+        if type(module) in [nn.Container, nn.Sequential]:
+            res += summarize(module, fn=fn, o=o + 3)
+        else:
+            summary = fn(key, module)
+            if summary is not None:
+                res.append(summary)
+    return res
+
+
+def _pr(x, d='size'):
+    return '{} of {} : {} {}'.format(
+        type(x).__name__, d, str(list(x.size())), str(x.storage_type()))
+
+
 def _show(xs, ofs=0):
     st = '\n'
-    if type(xs) == list or type(xs) == tuple:
+    if type(xs) in [list, tuple]:
         st += ' ' * ofs + str(type(xs)) + ' of len: ' + str(len(xs)) + ' containing:'
         nextl = [_show(x, ofs + 3) for x in xs]
         if len(set(nextl)) == 1:
@@ -54,17 +79,23 @@ def _show(xs, ofs=0):
         else:
             for x in nextl:
                 st += ' ' * ofs + x
+    elif type(xs) in [nn.Container, nn.Sequential]:
+        st += ' ' * ofs  + ' ModuleSeq containing:'
+        st += _show(xs, ofs=ofs + 3)
     elif type(xs) == str:
         st += ' ' * ofs + xs
     elif torch.is_tensor(xs) is True:
-        st += ' ' * ofs + 'Tensor of size:   ' + str(list(xs.size())) \
-              + ' ' + str(xs.storage_type())
-    elif isinstance(xs, Parameter) is True:
-        st += ' ' * ofs + 'Parameter of size:   ' + str(list(xs.size())) \
-              + ' ' + str(xs.storage_type())
+        st += ' ' * ofs + _pr(xs, d='size')
+    elif isinstance(xs, nn.Module):
+        st += ' ' * ofs + ' Module containing : \n'
+        for p in xs.parameters():
+            st += _show(p, ofs=ofs+3)
+        for key, module in xs._modules.items():
+            st += _show(module, ofs=ofs+3)
+    elif isinstance(xs, nn.Parameter):
+        st += ' ' * ofs + '{} of size : {}'.format(type(xs).__name__,  str(list(xs.size())))
     elif isinstance(xs, Variable):
-        st += ' ' * ofs + 'Variable of size: ' + str(list(xs.size())) \
-              + ' ' + str(xs.data.storage_type())
+        st += ' ' * ofs + _pr(xs.data)
     ofs += 3
     return st
 
